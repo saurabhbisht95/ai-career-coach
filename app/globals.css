@@ -138,7 +138,7 @@
   z-index: -1;
 }
 
-.grid-background::before{
+.grid-background::before {
   content: "";
   position: absolute;
   top: 0;

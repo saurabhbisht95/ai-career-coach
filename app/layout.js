@@ -21,7 +21,7 @@ export default function RootLayout({ children }) {
       >
         <ThemeProvider
             attribute="class"
-             forcedTheme="dark"
+            forcedTheme="dark"
             enableSystem
             disableTransitionOnChange
           >
