@@ -3,6 +3,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import Header from "@/components/header";
 import { ClerkProvider } from "@clerk/nextjs";
+import { Toaster } from "sonner";
 
 
 const inter = Inter( { subsets: ["latin"]});
@@ -15,7 +16,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <ClerkProvider>
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={` ${inter.className}`}
       >
@@ -29,6 +30,8 @@ export default function RootLayout({ children }) {
             <Header/>
 
             <main className="min-h-screen">{children}</main>
+
+            <Toaster richColors/>
 
             {/*footer */}
             <footer className="bg-muted/50 py-12">

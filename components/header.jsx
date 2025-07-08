@@ -1,11 +1,5 @@
 // components/HeaderClient.jsx
-import {
-  SignUpButton,
-  SignInButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from "@clerk/nextjs";
+import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "./ui/button";
@@ -23,8 +17,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { checkUser } from "@/lib/checkUser";
 
-export default function HeaderClient() {
+const Header = async () => {
+  await checkUser();
+  
   return (
     <header className="fixed top-0 w-full border-b bg-background/80 backdrop-blur-md z-50 supports-[backdrop-filter]:bg-background/60">
       <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -89,18 +86,21 @@ export default function HeaderClient() {
             </SignInButton>
           </SignedOut>
           <SignedIn>
-            <UserButton appearance={{
-              elements: {
-                avatarBox: "w-10 h-10",
-                userButtonPopoverCard: "shadow-xl",
-                userPreviewMainIdentifier: "font-semibold"
-              }
-            }}
-            afterSignOutUrl="/"
+            <UserButton
+              appearance={{
+                elements: {
+                  avatarBox: "w-10 h-10",
+                  userButtonPopoverCard: "shadow-xl",
+                  userPreviewMainIdentifier: "font-semibold",
+                },
+              }}
+              afterSignOutUrl="/"
             />
           </SignedIn>
         </div>
       </nav>
     </header>
   );
-}
+};
+
+export default Header;
