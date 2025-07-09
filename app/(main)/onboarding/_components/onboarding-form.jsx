@@ -71,8 +71,10 @@ const onSubmit = async (values) => {
   useEffect(() => {
     if (updateResult?.success && !updateLoading) {
       toast.success("Profile completed successfully!");
-      router.push("/dashboard");
+       setTimeout(() => {
       router.refresh();
+      router.push("/dashboard");
+    }, 200);
     }
   }, [updateLoading, updateResult]);
 

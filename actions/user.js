@@ -4,11 +4,11 @@ import mongoose from "mongoose";
 import IndustryInsight from "@/models/IndustryInsight.model";
 import User from "@/models/User.model";
 import { auth } from "@clerk/nextjs/server";
+import { generateAIInsights } from "./dashboard";
 
 // ✅ Function to update user & industry
 export async function updateUser(data) {
   const { userId } = await auth();
-
   if (!userId) throw new Error("Unauthorized");
 
   const session = await mongoose.startSession();
@@ -20,35 +20,31 @@ export async function updateUser(data) {
     const user = await User.findOne({ clerkUserId: userId }).session(session);
     if (!user) throw new Error("User not found!");
 
-    // Step 2: Find existing industry insight
+    // Step 2: Check if industry insight already exists
     let industryInsight = await IndustryInsight.findOne({
       industry: data.industry,
     }).session(session);
 
-    // Step 3: Create industry if not found
+    // Step 3: Create industry insight if not found
     if (!industryInsight) {
+      const insight = await generateAIInsights(data.industry);
+
       const created = await IndustryInsight.create(
         [
           {
             industry: data.industry,
-            salaryRanges: [],
-            growthRate: 0,
-            demandLevel: "medium",
-            topSkills: [],
-            marketOutlook: "neutral",
-            keyTrends: [],
-            recommendedSkills: [],
-            lastUpdated: new Date(),
-            nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            ...insight,
+            lastUpdated: new Date (Date.now()),
+            nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days later
           },
         ],
         { session }
       );
 
-      industryInsight = created[0];
+      industryInsight = created[0]; // ✅ FIX: extract the first element
     }
 
-    // Step 4: Update user with ObjectId reference
+    // Step 4: Update user with industry reference and other fields
     user.industry = industryInsight._id;
     user.experience = data.experience;
     user.bio = data.bio;
@@ -59,31 +55,32 @@ export async function updateUser(data) {
     await session.commitTransaction();
     session.endSession();
 
-    return { success: true, user: updatedUser, industryInsight };
+    return {
+      success: true,
+      user: JSON.parse(JSON.stringify(updatedUser)),
+      industryInsight: JSON.parse(JSON.stringify(industryInsight)),
+    };
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
     console.error("Error updating user and industry:", error.message);
-    throw new Error("Failed to update profile" + error.message);
+    throw new Error("Failed to update profile: " + error.message);
   }
 }
 
+// ✅ Function to get onboarding status
 export async function getUserOnboardingStatus() {
   const { userId } = await auth();
-
   if (!userId) throw new Error("Unauthorized");
 
-  try {
-    // Populate the `industry` ObjectId to get full doc
-    const user = await User.findOne({ clerkUserId: userId }).populate("industry");
+  const user = await User.findOne({ clerkUserId: userId }).populate("industry");
 
-    if (!user) throw new Error("User not found");
+  console.log("👤 USER =>", user);
+  console.log("🏭 INDUSTRY =>", user?.industry);
 
-    return {
-      isOnboarded: !!user.industry, // Checks if reference is set
-    };
-  } catch (error) {
-    console.error("Error checking onboarding status:", error.message);
-    throw new Error("Failed to check onboarding status");
-  }
+  if (!user) throw new Error("User not found");
+
+  return {
+    isOnboarded: Boolean(user.industry && user.industry._id),
+  };
 }
