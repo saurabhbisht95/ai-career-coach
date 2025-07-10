@@ -24,7 +24,7 @@ export async function generateQuiz() {
   if (!user) throw new Error("User not found");
 
   const prompt = `
-    Generate 3 technical interview questions for a ${
+    Generate 10 technical interview questions for a ${
       user.industry.industry
     } professional${
     user.skills?.length ? ` with expertise in ${user.skills.join(", ")}` : ""
@@ -49,8 +49,6 @@ export async function generateQuiz() {
     const response = result.response;
     const rawText = await response.text();
 
-    console.log("Gemini raw response:\n", rawText); // for debugging
-
     // Extract JSON part
     const match = rawText.match(/\{[\s\S]*\}/); // matches first {...} block
     if (!match) {
@@ -59,7 +57,7 @@ export async function generateQuiz() {
 
     const cleanedText = match[0];
     const parsed = JSON.parse(cleanedText); // safe now
-
+    
     return parsed.questions;
   } catch (error) {
     console.error("Gemini JSON parsing failed:", error.message);
@@ -149,9 +147,10 @@ export async function getAssessments() {
   if (!user) throw new Error("User not found");
 
   try {
-    const assessments = await Assessment.find({
+    const assessmentsRaw = await Assessment.find({
        userId: user.id 
-    }).lean();
+    }).sort({createdAt: -1}).lean();
+    const assessments = JSON.parse(JSON.stringify(assessmentsRaw));
 
     return assessments;
   } catch (error) {

@@ -4,7 +4,6 @@ import { format } from "date-fns";
 import React, { useEffect, useState } from "react";
 import {
   Card,
-  CardAction,
   CardContent,
   CardHeader,
   CardTitle,
@@ -26,7 +25,7 @@ const PerformanceChart = ({ assessments }) => {
   useEffect(() => {
     if (assessments) {
       const formattedData = assessments.map((assessments) => ({
-        date: format(new Date(assessments.createdAt), "MMM dd"),
+        date: format(new Date(assessments.createdAt),  "MMM dd, hh:mm a"),
         score: assessments.quizScore,
       }));
 
@@ -35,13 +34,12 @@ const PerformanceChart = ({ assessments }) => {
   }, [assessments]);
 
   return (
-    <Card>
+    <Card className="mt-4">
       <CardHeader>
         <CardTitle className="gradient-title text-3xl md:text-4xl">
           Performance Trend
         </CardTitle>
         <CardDescription>Your quiz scores over time</CardDescription>
-        <CardAction>Card Action</CardAction>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">
@@ -56,7 +54,7 @@ const PerformanceChart = ({ assessments }) => {
                     return (
                       <div className="bg-background border rounded-lg p-2 shadow-md">
                         <p className="text-sm font-medium">
-                          Score: {payload[0].value}%
+                          Score: {payload[0].value.toFixed(1)}%
                         </p>
                         <p className="text-xs text-muted-foreground">
                             {payload[0].payload.date}

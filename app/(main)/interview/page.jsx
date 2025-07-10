@@ -15,7 +15,7 @@ const Interviewpage = async() => {
           Interview Preparation
         </h1>
         
-        <div>
+        <div className="space-x-6">
           <StatsCards assessments ={assessments} /> 
           <PerformanceChart assessments ={assessments} /> 
           <QuizList assessments ={assessments} /> 
