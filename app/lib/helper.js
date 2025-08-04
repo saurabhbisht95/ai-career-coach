@@ -1,0 +1,18 @@
+//function for edit in pdf
+
+export function entriesToMarkdown(entries, type) {
+  if (!entries?.length) return "";
+
+  console.log(entries)
+  return (
+    `## ${type}\n\n` +
+    entries
+      .map((entry) => {
+        const dateRange = entry.current
+          ? `${entry.startDate} - Present`
+          : `${entry.startDate} - ${entry.endDate}`;
+        return `### ${entry.title} @ ${entry.organization}\n${dateRange}\n\n${entry.description}`
+      })
+      .join("\n\n")
+  );
+}

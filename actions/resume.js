@@ -1,3 +1,5 @@
+"use server";
+
 import { auth } from "@clerk/nextjs/server";
 import User from "@/models/User.model";
 import Resume from "@/models/Resume.model";
@@ -13,11 +15,15 @@ const model = genAI.getGenerativeModel({
 
 
 export async function saveResume(content) {
-  const { userId } = auth();
+ const { userId } = await auth(); // ✅ correct way to get logged-in user on server
 
+  console.log("User ID:", userId);
+ 
   if (!userId) throw new Error("Unauthorized");
 
   const user = await User.findOne({ clerkUserId: userId });
+  console.log(user);
+  
   if (!user) throw new Error("User not found");
 
   try {
@@ -26,6 +32,8 @@ export async function saveResume(content) {
       { $set: { content } },
       { upsert: true }
     );
+    console.log(resume);
+    
 
     revalidatePath("/resume");
     return resume;
@@ -45,7 +53,7 @@ export async function getResume() {
 
   if (!user) throw new Error("user not found");
 
-  return await Resume.findById({ userId: user.id }).populate("userId");
+  return await Resume.findOne({ userId: user.id }).populate("userId");
 }
 
 export async function improveWithAI({ current, type }) {
