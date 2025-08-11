@@ -75,9 +75,6 @@ export async function getUserOnboardingStatus() {
 
   const user = await User.findOne({ clerkUserId: userId }).populate("industry");
 
-  console.log("👤 USER =>", user);
-  console.log("🏭 INDUSTRY =>", user?.industry);
-
   if (!user) throw new Error("User not found");
 
   return {

@@ -34,9 +34,7 @@ const Quiz = () => {
     data: resultData,
     setData: setResultData,
   } = useFetch(saveQuizResult);
-  console.log(resultData);
   
-
   useEffect(() => {
     if (quizData) {
       setAnswers(new Array(quizData.length).fill(null));

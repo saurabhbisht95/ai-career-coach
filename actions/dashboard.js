@@ -37,8 +37,6 @@ export const generateAIInsights = async (industry) => {
     const response = result.response;
     const rawText = await response.text();
 
-    console.log("Gemini raw response:\n", rawText); // for debugging
-
     // Extract JSON part
     const match = rawText.match(/\{[\s\S]*\}/); // matches first {...} block
     if (!match) {
@@ -57,12 +55,10 @@ export const generateAIInsights = async (industry) => {
 
 export async function getIndustryInsights() {
   const { userId } = await auth();
-  console.log("🧠 Authenticated userId:", userId);
 
   if (!userId) throw new Error("Unauthorized");
 
   const user = await User.findOne({ clerkUserId: userId }).populate("industry");
-  console.log("👤 User:", user);
 
   if (!user) throw new Error("User not found");
   if (!user.industry || !user.industry.industry) {
@@ -71,19 +67,14 @@ export async function getIndustryInsights() {
   }
 
   const industryName = user.industry.industry;
-  console.log("🏭 Industry name:", industryName);
 
   let industryInsight = await IndustryInsight.findOne({
     industry: industryName,
   });
-  console.log("🔍 Existing IndustryInsight:", industryInsight);
 
   if (!industryInsight) {
-    console.log("🚧 No IndustryInsight found. Generating new one...");
 
     const insight = await generateAIInsights(industryName);
-
-    console.log("📦 AI Insight from Gemini:", insight);
 
     // Add log before creation
     const documentToInsert = {
@@ -94,7 +85,7 @@ export async function getIndustryInsights() {
     };
     
     industryInsight = await IndustryInsight.create(documentToInsert);
-    console.log("✅ Created IndustryInsight:", industryInsight);
+
   }
 
   return industryInsight;

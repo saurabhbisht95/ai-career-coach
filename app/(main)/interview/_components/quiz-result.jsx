@@ -5,8 +5,7 @@ import { CheckCircle2, Trophy, XCircle } from "lucide-react";
 import React from "react";
 
 const QuizResult = ({ result, hideStartNew = false, onStartNew }) => {
-  console.log(result);
-  
+
   if (!result) return null;
 
   return (
