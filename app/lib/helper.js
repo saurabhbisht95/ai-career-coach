@@ -2,8 +2,6 @@
 
 export function entriesToMarkdown(entries, type) {
   if (!entries?.length) return "";
-
-  console.log(entries)
   return (
     `## ${type}\n\n` +
     entries

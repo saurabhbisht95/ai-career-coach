@@ -77,7 +77,6 @@ const DashboardView = ({ insights }) => {
     lastUpdated && !isNaN(lastUpdated)
       ? format(lastUpdated, "dd/MM/yyyy")
       : "N/A";
-  console.log(insights);
 
   const nextUpdateDistance =
     nextUpdate && !isNaN(nextUpdate)

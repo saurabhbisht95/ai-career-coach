@@ -1,5 +1,4 @@
 "use server";
-
 import mongoose from "mongoose";
 import connectToDatabase from "@/lib/mogodb";
 import IndustryInsight from "@/models/IndustryInsight.model";

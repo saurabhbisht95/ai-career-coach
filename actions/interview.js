@@ -111,8 +111,6 @@ export async function saveQuizResult(questions, answers, score) {
       const result = await model.generateContent(improvementPrompt);
       const response = result.response;
       improvementTip = await response.text().trim();
-
-      console.log("Gemini improvement Tip:\n", improvementTip); // for debugging
     } catch (error) {
       console.error("Error generating the improvement tip:", error.message);
       throw new Error("Failed to generate quiz questions.");
