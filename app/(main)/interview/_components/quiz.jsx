@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { BarLoader } from "react-spinners";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, } from "lucide-react";
 import QuizResult from "./quiz-result";
 
 const Quiz = () => {
