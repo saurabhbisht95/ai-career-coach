@@ -1,5 +1,4 @@
 "use client"
-
 import Link from "next/link";
 import React, { useEffect, useRef } from "react";
 import { Button } from "./ui/button";
@@ -51,7 +50,7 @@ const HeroSection = () => {
           </Link>
            <Link href="/onboarding">
             <Button size="lg" className="px-8" variant='outline'>
-              Get Started
+              Onboarding
             </Button>
           </Link>
         </div>

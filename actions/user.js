@@ -1,6 +1,6 @@
 "use server";
-
 import mongoose from "mongoose";
+import connectToDatabase from "@/lib/mogodb";
 import IndustryInsight from "@/models/IndustryInsight.model";
 import User from "@/models/User.model";
 import { auth } from "@clerk/nextjs/server";
@@ -11,6 +11,7 @@ export async function updateUser(data) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
+  await connectToDatabase();
   const session = await mongoose.startSession();
 
   try {
@@ -34,11 +35,11 @@ export async function updateUser(data) {
           {
             industry: data.industry,
             ...insight,
-            lastUpdated: new Date (Date.now()),
+            lastUpdated: new Date(Date.now()),
             nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days later
           },
         ],
-        { session }
+        { session },
       );
 
       industryInsight = created[0]; // ✅ FIX: extract the first element
@@ -73,7 +74,11 @@ export async function getUserOnboardingStatus() {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
+  await connectToDatabase();
   const user = await User.findOne({ clerkUserId: userId }).populate("industry");
+
+  console.log("👤 USER =>", user);
+  console.log("🏭 INDUSTRY =>", user?.industry);
 
   if (!user) throw new Error("User not found");
 
