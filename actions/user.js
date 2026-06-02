@@ -1,88 +1,104 @@
 "use server";
-import mongoose from "mongoose";
 import connectToDatabase from "@/lib/mogodb";
 import IndustryInsight from "@/models/IndustryInsight.model";
 import User from "@/models/User.model";
 import { auth } from "@clerk/nextjs/server";
 import { generateAIInsights } from "./dashboard";
 
-// ✅ Function to update user & industry
+function toPlainUser(user) {
+  if (!user) return null;
+
+  return {
+    ...user,
+    _id: user._id?.toString(),
+    industry: user.industry?.toString?.() ?? user.industry,
+    createdAt: user.createdAt?.toISOString?.(),
+    updatedAt: user.updatedAt?.toISOString?.(),
+  };
+}
+
+function toPlainIndustryInsight(industryInsight) {
+  if (!industryInsight) return null;
+
+  return {
+    ...industryInsight,
+    _id: industryInsight._id?.toString(),
+    lastUpdated: industryInsight.lastUpdated?.toISOString?.() ?? null,
+    nextUpdate: industryInsight.nextUpdate?.toISOString?.() ?? null,
+  };
+}
+
 export async function updateUser(data) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
   await connectToDatabase();
-  const session = await mongoose.startSession();
 
   try {
-    session.startTransaction();
-
-    // Step 1: Find the user
-    const user = await User.findOne({ clerkUserId: userId }).session(session);
+    const user = await User.findOne({ clerkUserId: userId })
+      .select("_id")
+      .lean();
     if (!user) throw new Error("User not found!");
 
-    // Step 2: Check if industry insight already exists
     let industryInsight = await IndustryInsight.findOne({
       industry: data.industry,
-    }).session(session);
+    }).lean();
 
-    // Step 3: Create industry insight if not found
     if (!industryInsight) {
       const insight = await generateAIInsights(data.industry);
 
-      const created = await IndustryInsight.create(
-        [
-          {
+      industryInsight = await IndustryInsight.findOneAndUpdate(
+        { industry: data.industry },
+        {
+          $setOnInsert: {
             industry: data.industry,
             ...insight,
             lastUpdated: new Date(Date.now()),
-            nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days later
+            nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           },
-        ],
-        { session },
-      );
-
-      industryInsight = created[0]; // ✅ FIX: extract the first element
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      ).lean();
     }
 
-    // Step 4: Update user with industry reference and other fields
-    user.industry = industryInsight._id;
-    user.experience = data.experience;
-    user.bio = data.bio;
-    user.skills = data.skills;
-
-    const updatedUser = await user.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
+    const updatedUser = await User.findByIdAndUpdate(
+      user._id,
+      {
+        $set: {
+          industry: industryInsight._id,
+          experience: data.experience,
+          bio: data.bio,
+          skills: data.skills,
+        },
+      },
+      { new: true }
+    )
+      .select("clerkUserId email name imageUrl industry bio experience skills createdAt updatedAt")
+      .lean();
 
     return {
       success: true,
-      user: JSON.parse(JSON.stringify(updatedUser)),
-      industryInsight: JSON.parse(JSON.stringify(industryInsight)),
+      user: toPlainUser(updatedUser),
+      industryInsight: toPlainIndustryInsight(industryInsight),
     };
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     console.error("Error updating user and industry:", error.message);
     throw new Error("Failed to update profile: " + error.message);
   }
 }
 
-// ✅ Function to get onboarding status
 export async function getUserOnboardingStatus() {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
   await connectToDatabase();
-  const user = await User.findOne({ clerkUserId: userId }).populate("industry");
-
-  console.log("👤 USER =>", user);
-  console.log("🏭 INDUSTRY =>", user?.industry);
+  const user = await User.findOne({ clerkUserId: userId })
+    .select("industry")
+    .lean();
 
   if (!user) throw new Error("User not found");
 
   return {
-    isOnboarded: Boolean(user.industry && user.industry._id),
+    isOnboarded: Boolean(user.industry),
   };
 }

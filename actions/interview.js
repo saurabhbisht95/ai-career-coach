@@ -4,7 +4,7 @@ import Assessment from "@/models/Assessment.model";
 import User from "@/models/User.model";
 import { auth } from "@clerk/nextjs/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import IndustryInsight from "@/models/IndustryInsight.model";
+import connectToDatabase from "@/lib/mogodb";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -12,16 +12,37 @@ const model = genAI.getGenerativeModel({
   model: "gemini-1.5-flash-latest",
 });
 
+function serializeAssessment(assessment) {
+  return {
+    ...assessment,
+    _id: assessment._id?.toString(),
+    userId: assessment.userId?.toString(),
+    createdAt: assessment.createdAt?.toISOString?.(),
+    updatedAt: assessment.updatedAt?.toISOString?.(),
+  };
+}
+
+async function getUserInterviewProfile(userId) {
+  await connectToDatabase();
+
+  const user = await User.findOne({
+    clerkUserId: userId,
+  })
+    .select("industry skills")
+    .populate({ path: "industry", select: "industry" })
+    .lean();
+
+  if (!user) throw new Error("User not found");
+
+  return user;
+}
+
 export async function generateQuiz() {
   const { userId } = await auth();
 
   if (!userId) throw new Error("Unauthorized");
 
-  const user = await User.findOne({
-    clerkUserId: userId,
-  }).populate("industry");
-
-  if (!user) throw new Error("User not found");
+  const user = await getUserInterviewProfile(userId);
 
   const prompt = `
     Generate 10 technical interview questions for a ${
@@ -70,15 +91,11 @@ export async function saveQuizResult(questions, answers, score) {
 
   if (!userId) throw new Error("Unauthorized");
 
-  const user = await User.findOne({
-    clerkUserId: userId,
-  }).populate("industry");
-
-  if (!user) throw new Error("User not found");
+  const user = await getUserInterviewProfile(userId);
 
   const questionsResults = questions.map((q, index) => ({
     question: q.question,
-    answer: q.answer,
+    answer: q.correctAnswer,
     userAnswer: answers[index],
     isCorrect: q.correctAnswer === answers[index],
     explanation: q.explanation,
@@ -119,14 +136,14 @@ export async function saveQuizResult(questions, answers, score) {
 
   try {
     const resultToInsert = {
-      userId: user.id,
+      userId: user._id,
       quizScore: score,
       questions: questionsResults,
       category: "Technical",
       improvementTip,
     };
     const assessment = await Assessment.create(resultToInsert);
-    return JSON.parse(JSON.stringify(assessment));
+    return serializeAssessment(assessment.toObject());
   } catch (error) {
     console.error("Error saving assessment:", error.message);
     throw new Error("Failed to save quiz result.");
@@ -138,17 +155,21 @@ export async function getAssessments() {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
+  await connectToDatabase();
+
   const user = await User.findOne({
     clerkUserId: userId
-  });
+  })
+    .select("_id")
+    .lean();
 
   if (!user) throw new Error("User not found");
 
   try {
     const assessmentsRaw = await Assessment.find({
-       userId: user.id 
+       userId: user._id 
     }).sort({createdAt: -1}).lean();
-    const assessments = JSON.parse(JSON.stringify(assessmentsRaw));
+    const assessments = assessmentsRaw.map(serializeAssessment);
 
     return assessments;
   } catch (error) {

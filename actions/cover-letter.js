@@ -4,6 +4,7 @@ import CoverLetter from "@/models/CoverLetter.model";
 import User from "@/models/User.model";
 import { auth } from "@clerk/nextjs/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import connectToDatabase from "@/lib/mogodb";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -24,7 +25,12 @@ export async function generateCoverLetter(data) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const user = await User.findOne({ clerkUserId: userId }).populate("industry");
+  await connectToDatabase();
+
+  const user = await User.findOne({ clerkUserId: userId })
+    .select("industry experience skills bio")
+    .populate({ path: "industry", select: "industry" })
+    .lean();
   if (!user) throw new Error("User not found");
 
   const prompt = `
@@ -75,10 +81,15 @@ export async function getCoverLetters() {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const user = await User.findOne({ clerkUserId: userId });
+  await connectToDatabase();
+
+  const user = await User.findOne({ clerkUserId: userId })
+    .select("_id")
+    .lean();
   if (!user) throw new Error("User not found");
 
   const letters = await CoverLetter.find({ userId: user._id })
+    .select("jobTitle companyName jobDescription status userId createdAt updatedAt")
     .sort({ createdAt: -1 })
     .lean();
 
@@ -89,10 +100,16 @@ export async function getCoverLetter(id) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const user = await User.findOne({ clerkUserId: userId });
+  await connectToDatabase();
+
+  const user = await User.findOne({ clerkUserId: userId })
+    .select("_id")
+    .lean();
   if (!user) throw new Error("User not found");
 
-  const letter = await CoverLetter.findOne({ _id: id, userId: user._id }).lean();
+  const letter = await CoverLetter.findOne({ _id: id, userId: user._id })
+    .select("content jobDescription companyName jobTitle status userId createdAt updatedAt")
+    .lean();
   return toPlain(letter);
 }
 
@@ -100,7 +117,11 @@ export async function deleteCoverLetter(id) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const user = await User.findOne({ clerkUserId: userId });
+  await connectToDatabase();
+
+  const user = await User.findOne({ clerkUserId: userId })
+    .select("_id")
+    .lean();
   if (!user) throw new Error("User not found");
 
   return await CoverLetter.deleteOne({ _id: id, userId: user._id });

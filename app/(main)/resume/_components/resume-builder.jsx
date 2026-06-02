@@ -12,7 +12,6 @@ import {
   Save,
 } from "lucide-react";
 import { toast } from "sonner";
-import MDEditor from "@uiw/react-md-editor";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,8 +24,17 @@ import { entriesToMarkdown } from "@/app/lib/helper";
 import { resumeSchema } from "@/app/lib/schema";
 import dynamic from "next/dynamic";
 
-// Dynamically import html2pdf only in the browser
-const html2pdf = typeof window !== "undefined" ? require("html2pdf.js") : null;
+const MDEditor = dynamic(() => import("@uiw/react-md-editor"), {
+  ssr: false,
+  loading: () => <div className="h-[800px] rounded-lg bg-muted/30" />,
+});
+
+const MarkdownPreview = dynamic(
+  () => import("@uiw/react-md-editor").then((mod) => mod.default.Markdown),
+  {
+    ssr: false,
+  }
+);
 
 export default function ResumeBuilder({ initialContent }) {
   const [activeTab, setActiveTab] = useState("edit");
@@ -118,6 +126,7 @@ export default function ResumeBuilder({ initialContent }) {
   const generatePDF = async () => {
     setIsGenerating(true);
     try {
+      const html2pdf = (await import("html2pdf.js")).default;
       const element = document.getElementById("resume-pdf");
       const opt = {
         margin: [15, 15],
@@ -135,12 +144,8 @@ export default function ResumeBuilder({ initialContent }) {
     }
   };
 
-  const onSubmit = async (data) => {
+  const onSubmit = async () => {
     try {
-      const formattedContent = previewContent
-        .replace(/\n/g, "\n") // Normalize newlines
-        .replace(/\n\s*\n/g, "\n\n") // Normalize multiple newlines to double newlines
-        .trim();
       await saveResumeFn(previewContent);
     } catch (error) {
       console.error("Save error:", error);
@@ -404,7 +409,7 @@ export default function ResumeBuilder({ initialContent }) {
           </div>
           <div className="hidden">
             <div id="resume-pdf">
-              <MDEditor.Markdown
+              <MarkdownPreview
                 source={previewContent}
                 style={{
                   background: "white",

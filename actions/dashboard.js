@@ -4,12 +4,62 @@ import User from "@/models/User.model";
 import IndustryInsight from "@/models/IndustryInsight.model";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { auth } from "@clerk/nextjs/server";
+import connectToDatabase from "@/lib/mogodb";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const model = genAI.getGenerativeModel({
   model: "gemini-1.5-flash-latest",
 });
+
+function toPlainInsight(insight) {
+  if (!insight) return null;
+
+  return {
+    ...insight,
+    _id: insight._id?.toString(),
+    lastUpdated: insight.lastUpdated?.toISOString?.() ?? null,
+    nextUpdate: insight.nextUpdate?.toISOString?.() ?? null,
+  };
+}
+
+async function getCurrentUserWithIndustry() {
+  const { userId } = await auth();
+
+  if (!userId) throw new Error("Unauthorized");
+
+  await connectToDatabase();
+
+  const user = await User.findOne({ clerkUserId: userId })
+    .select("industry")
+    .populate({ path: "industry", select: "industry" })
+    .lean();
+
+  if (!user) throw new Error("User not found");
+
+  return user;
+}
+
+async function getOrCreateIndustryInsight(industryName) {
+  let industryInsight = await IndustryInsight.findOne({
+    industry: industryName,
+  }).lean();
+
+  if (!industryInsight) {
+    const insight = await generateAIInsights(industryName);
+
+    const documentToInsert = {
+      industry: industryName,
+      ...insight,
+      lastUpdated: new Date(Date.now()),
+      nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    };
+
+    industryInsight = (await IndustryInsight.create(documentToInsert)).toObject();
+  }
+
+  return toPlainInsight(industryInsight);
+}
 
 export const generateAIInsights = async (industry) => {
   const prompt = `
@@ -54,39 +104,25 @@ export const generateAIInsights = async (industry) => {
 };
 
 export async function getIndustryInsights() {
-  const { userId } = await auth();
-
-  if (!userId) throw new Error("Unauthorized");
-
-  const user = await User.findOne({ clerkUserId: userId }).populate("industry");
-
-  if (!user) throw new Error("User not found");
+  const user = await getCurrentUserWithIndustry();
   if (!user.industry || !user.industry.industry) {
     console.warn("⚠️ User has no industry selected");
     throw new Error("User has no industry selected");
   }
 
-  const industryName = user.industry.industry;
+  return getOrCreateIndustryInsight(user.industry.industry);
+}
 
-  let industryInsight = await IndustryInsight.findOne({
-    industry: industryName,
-  });
+export async function getDashboardData() {
+  const user = await getCurrentUserWithIndustry();
+  const industryName = user.industry?.industry;
 
-  if (!industryInsight) {
-
-    const insight = await generateAIInsights(industryName);
-
-    // Add log before creation
-    const documentToInsert = {
-      industry: industryName,
-      ...insight,
-      lastUpdated: new Date (Date.now()),
-      nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    };
-    
-    industryInsight = await IndustryInsight.create(documentToInsert);
-
+  if (!industryName) {
+    return { isOnboarded: false, insights: null };
   }
 
-  return industryInsight;
+  return {
+    isOnboarded: true,
+    insights: await getOrCreateIndustryInsight(industryName),
+  };
 }

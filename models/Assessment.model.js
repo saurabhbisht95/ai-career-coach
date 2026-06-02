@@ -11,4 +11,6 @@ const AssessmentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+AssessmentSchema.index({ userId: 1, createdAt: -1 });
+
 export default mongoose.models.Assessment || mongoose.model("Assessment", AssessmentSchema);

@@ -169,6 +169,19 @@
   will-change: transform;
 }
 
-.hero-image.scrolled {
-  transform: rotateX(0deg) scale(1) translateY(40px);
+@keyframes hero-image-scroll {
+  from {
+    transform: rotateX(15deg) scale(1);
+  }
+  to {
+    transform: rotateX(0deg) scale(1) translateY(40px);
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  .hero-image {
+    animation: hero-image-scroll linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0 120px;
+  }
 }

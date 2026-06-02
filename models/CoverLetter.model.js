@@ -12,4 +12,6 @@ const CoverLetterSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+CoverLetterSchema.index({ userId: 1, createdAt: -1 });
+
 export default mongoose.models.CoverLetter || mongoose.model("CoverLetter", CoverLetterSchema);

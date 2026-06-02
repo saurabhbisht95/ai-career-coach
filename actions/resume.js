@@ -6,6 +6,7 @@ import Resume from "@/models/Resume.model";
 import { revalidatePath } from "next/cache";
 import "@/models/IndustryInsight.model";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import connectToDatabase from "@/lib/mogodb";
 
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -20,7 +21,11 @@ export async function saveResume(content) {
  
   if (!userId) throw new Error("Unauthorized");
 
-  const user = await User.findOne({ clerkUserId: userId });
+  await connectToDatabase();
+
+  const user = await User.findOne({ clerkUserId: userId })
+    .select("_id")
+    .lean();
   
   if (!user) throw new Error("User not found");
 
@@ -43,22 +48,33 @@ export async function getResume() {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
+  await connectToDatabase();
+
   const user = await User.findOne({
     clerkUserId: userId,
-  });
+  })
+    .select("_id")
+    .lean();
 
   if (!user) throw new Error("user not found");
 
-  return await Resume.findOne({ userId: user.id }).populate("userId");
+  return await Resume.findOne({ userId: user._id })
+    .select("content atsScore feedback -_id")
+    .lean();
 }
 
 export async function improveWithAI({ current, type }) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
+  await connectToDatabase();
+
   const user = await User.findOne({
     clerkUserId: userId,
-  }).populate("industry");
+  })
+    .select("industry skills")
+    .populate({ path: "industry", select: "industry" })
+    .lean();
 
   if (!user) throw new Error("user not found");
 

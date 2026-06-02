@@ -1,5 +1,3 @@
-"use client";
-
 import React from "react";
 
 import {
@@ -19,15 +17,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import {
-  CartesianGrid,
-  ResponsiveContainer,
-  BarChart,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Bar,
-} from "recharts";
+import SalaryChart from "./salary-chart";
 
 const DashboardView = ({ insights }) => {
   const salaryData = insights.salaryRanges.map((range) => ({
@@ -164,33 +154,7 @@ const DashboardView = ({ insights }) => {
         </CardHeader>
         <CardContent>
           <div className="h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={salaryData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip
-                  content={({ active, payload, label }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="bg-background border rounded-lg p-2 shadow-md">
-                          <p className="font-medium">{label}</p>
-                          {payload.map((item) => (
-                            <p key={item.name} className="text-sm">
-                              {item.name}: ${item.value}K
-                            </p>
-                          ))}
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Bar dataKey="min" fill="#38bdf8" name="Min Salary (K)" />
-                <Bar dataKey="median" fill="#8b5cf6" name="Median Salary (K)" />
-                <Bar dataKey="max" fill="#f43f5e" name="Max Salary (K)" />
-              </BarChart>
-            </ResponsiveContainer>
+            <SalaryChart data={salaryData} />
           </div>
         </CardContent>
       </Card>

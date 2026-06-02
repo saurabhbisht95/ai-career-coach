@@ -8,7 +8,7 @@ const ResumePage = async() => {
 
   return (
     <div className='container mx-auto py-6'>
-      <ResumeBuilder initalContent = {resume?.content}/>
+      <ResumeBuilder initialContent={resume?.content} />
     </div>
   )
 }
