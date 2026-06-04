@@ -48,14 +48,18 @@ async function getOrCreateIndustryInsight(industryName) {
   if (!industryInsight) {
     const insight = await generateAIInsights(industryName);
 
-    const documentToInsert = {
-      industry: industryName,
-      ...insight,
-      lastUpdated: new Date(Date.now()),
-      nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    };
-
-    industryInsight = (await IndustryInsight.create(documentToInsert)).toObject();
+    industryInsight = await IndustryInsight.findOneAndUpdate(
+      { industry: industryName },
+      {
+        $setOnInsert: {
+          industry: industryName,
+          ...insight,
+          lastUpdated: new Date(Date.now()),
+          nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).lean();
   }
 
   return toPlainInsight(industryInsight);
